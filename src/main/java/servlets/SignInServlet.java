@@ -13,8 +13,8 @@ import java.io.IOException;
 
 public class SignInServlet extends HttpServlet {
 
-//        private final UsersDAOjdbc dao = new UsersDAOjdbc();
-    private final UsersDAOhibernate dao = new UsersDAOhibernate();
+        private final UsersDAOjdbc dao = new UsersDAOjdbc();
+//    private final UsersDAOhibernate dao = new UsersDAOhibernate();
 
     public void doGet(HttpServletRequest request,
                       HttpServletResponse response) {

@@ -2,30 +2,34 @@ package dbService.dao;
 
 import dbService.DBException;
 import dbService.User;
-import dbService.jdbcExecutor.Executor;
 import org.h2.jdbcx.JdbcDataSource;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
+import java.sql.*;
 
 public class UsersDAOjdbc implements UsersDAO {
 
     private final Connection connection;
-    private final Executor executor;
 
     public UsersDAOjdbc() {
         this.connection = getH2Connection();
-        this.executor = new Executor(connection);
     }
 
     @Override
     public void insertUser(String login, String password) throws DBException {
         try {
             connection.setAutoCommit(false);
-            executor.execUpdate("create table if not exists users (id bigint auto_increment, login varchar(256), " +
+
+            Statement stmt = connection.createStatement();
+            stmt.execute("create table if not exists users (id bigint auto_increment, login varchar(256), " +
                     "password varchar(256), primary key (id))");
-            executor.execUpdate("insert into users (login, password) values ('" + login + "', '" + password + "')");
+            stmt.close();
+
+            PreparedStatement addUser =
+                    connection.prepareStatement("insert into users (login, password) values (?,?)");
+            addUser.setString(1,login);
+            addUser.setString(2, password);
+            addUser.execute();
+            addUser.close();
             connection.commit();
         } catch (SQLException e) {
             try {
@@ -46,14 +50,25 @@ public class UsersDAOjdbc implements UsersDAO {
     public User getUserByLogin(String login) throws DBException {
 
         try {
-            return executor.execQuery("select * from users where login='" + login + "'", result -> {
-                result.next();
+
+            PreparedStatement statement = connection.prepareStatement("select * from users where login= ?");
+            statement.setString(1,login);
+            statement.executeQuery();
+            ResultSet result = statement.getResultSet();
+
+            if (result.next()) {
                 User user = new User();
                 user.setId(result.getLong(1));
                 user.setLogin(result.getString(2));
                 user.setPassword(result.getString(3));
+                result.close();
+                statement.close();
                 return user;
-            });
+            } else {
+                return null;
+            }
+
+
         } catch (SQLException e) {
             throw new DBException(e);
         }
